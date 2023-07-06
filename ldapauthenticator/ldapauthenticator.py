@@ -355,7 +355,7 @@ class LDAPAuthenticator(Authenticator):
             search_filter=f'(uniqueMember={userdn})',
             attributes=[self.group_attribute]
         )
-	    return [entry['attributes'][self.group_attribute][0] for entry in conn.response]
+        return [entry['attributes'][self.group_attribute][0] for entry in conn.response]
 
     @gen.coroutine
     def authenticate(self, handler, data):
