@@ -82,6 +82,15 @@ class LDAPAuthenticator(Authenticator):
         """,
     )
 
+    manage_groups = = Bool(
+        False,
+        config=True,
+        help="""
+        Pass groups of user as sepecified here:
+        https://jupyterhub.readthedocs.io/en/stable/reference/authenticators.html#authenticator-managed-group-membership
+        """,
+    )
+    
     # FIXME: Use something other than this? THIS IS LAME, akin to websites restricting things you
     # can use in usernames / passwords to protect from SQL injection!
     valid_username_regex = Unicode(
@@ -138,6 +147,15 @@ class LDAPAuthenticator(Authenticator):
         """,
     )
 
+    group_search_base = Unicode(
+        config=True,
+        default_value=None,
+        allow_none=True,
+        help="""
+        Base for looking up groups.
+        """,
+    )
+
     user_attribute = Unicode(
         config=True,
         default_value=None,
@@ -149,6 +167,15 @@ class LDAPAuthenticator(Authenticator):
 
         For most LDAP servers, this is uid.  For Active Directory, it is
         sAMAccountName.
+        """,
+    )
+
+    group_attribute = Unicode(
+        config=True,
+        default_value="cn",
+        allow_none=True,
+        help="""
+        Attribute containing gorups's name.
         """,
     )
 
@@ -322,6 +349,14 @@ class LDAPAuthenticator(Authenticator):
                 attrs = conn.entries[0].entry_attributes_as_dict
         return attrs
 
+    def get_groups(self, conn, userdn):
+        groups = conn.search(
+            search_base=self.group_search_base,
+            search_filter=f'(uniqueMember={userdn})',
+            attributes=[self.group_attribute]
+        )
+	    return [entry['attributes'][self.group_attribute][0] for entry in conn.response]
+
     @gen.coroutine
     def authenticate(self, handler, data):
         username = data["username"]
@@ -452,12 +487,18 @@ class LDAPAuthenticator(Authenticator):
 
         if not self.use_lookup_dn_username:
             username = data["username"]
-
+        
+        result = {"name": username}
+        
+        if manage_groups:
+            result["groups"] = self.get_groups(conn, userdn)
+        
         user_info = self.get_user_attributes(conn, userdn)
         if user_info:
-            self.log.debug("username:%s attributes:%s", username, user_info)
-            return {"name": username, "auth_state": user_info}
-        return username
+            result["auth_state"] = user_info
+        
+        self.log.debug(str(result))
+        return result
 
 
 if __name__ == "__main__":
