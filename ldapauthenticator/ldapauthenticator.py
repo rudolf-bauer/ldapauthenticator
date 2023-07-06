@@ -490,7 +490,7 @@ class LDAPAuthenticator(Authenticator):
         
         result = {"name": username}
         
-        if manage_groups:
+        if self.manage_groups:
             result["groups"] = self.get_groups(conn, userdn)
         
         user_info = self.get_user_attributes(conn, userdn)
