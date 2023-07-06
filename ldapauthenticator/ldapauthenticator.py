@@ -82,7 +82,7 @@ class LDAPAuthenticator(Authenticator):
         """,
     )
 
-    manage_groups = = Bool(
+    manage_groups = Bool(
         False,
         config=True,
         help="""
